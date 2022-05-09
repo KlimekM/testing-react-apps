@@ -5,8 +5,8 @@ import * as React from 'react'
 import {render, screen, waitForElementToBeRemoved} from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import {build, fake} from '@jackfranklin/test-data-bot'
-import {rest} from 'msw'
 import {setupServer} from 'msw/node'
+import {handlers} from 'test/server-handlers'
 import Login from '../../components/login-submission'
 
 const buildLoginForm = build({
@@ -16,14 +16,7 @@ const buildLoginForm = build({
   },
 })
 
-const server = setupServer(
-  rest.post(
-    'https://auth-provider.example.com/api/login',
-    async (req, res, ctx) => {
-      return res(ctx.json({username: 'rwilson'}))
-    },
-  ),
-)
+const server = setupServer(...handlers)
 
 beforeAll(() => server.listen())
 afterEach(() => server.resetHandlers())
@@ -37,9 +30,9 @@ test(`logging in displays the user's username`, async () => {
   userEvent.type(screen.getByLabelText(/password/i), password)
   userEvent.click(screen.getByRole('button', {name: /submit/i}))
 
-  await waitForElementToBeRemoved(screen.getByLabelText(/loading/i))
+  await waitForElementToBeRemoved(() => screen.getByLabelText(/loading/i))
 
   // once the login is successful, then the loading spinner disappears and
   // we render the username.
-  expect(screen.getByText(/rwilson/i)).toBeInTheDocument()
+  expect(screen.getByText(username)).toBeInTheDocument()
 })
